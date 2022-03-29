@@ -2,6 +2,7 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
+import router from './routes';
 
 // Load .env variables
 dotenv.config();
@@ -22,6 +23,8 @@ app.use(bodyParser.urlencoded({ extended: false }));
 
 // parse application/json
 app.use(bodyParser.json());
+
+app.use(process.env.BASE_PATH, router);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log('Server running on port 3000'));
