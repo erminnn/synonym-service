@@ -1,1 +1,1 @@
-module.exports = require("esm")(module)("./server");
+module.exports = require('esm')(module)('./server');
