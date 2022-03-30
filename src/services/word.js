@@ -34,8 +34,10 @@ const addWord = async (wordPayload) => {
          */
 
         const { _id: synonymsId } = await synonymService.addSynonyms({ synonyms: wordWithSynonymsArray });
-        const modifiedWordPayload = wordWithSynonymsArray.map((word) => ({ name: word, synonyms: [synonymsId] }));
-        return await Word.insertMany(modifiedWordPayload);
+
+        const wordsPayload = createWordPayload(wordWithSynonymsArray, [synonymsId], words);
+
+        return await Word.insertMany(wordsPayload);
     } else {
         /* 
         Case 2:
@@ -53,16 +55,20 @@ const addWord = async (wordPayload) => {
 
         const synonymIds = synonymsGroupedByWords.map((synonym) => synonym.synonymId);
 
-        const wordsPayload = wordWithSynonymsArray.reduce((acc, word) => {
-            const found = words.find(({ name }) => word === name);
-            if (!found) {
-                acc.push({ name: word, synonyms: synonymIds });
-            }
-            return acc;
-        }, []);
+        const wordsPayload = createWordPayload(wordWithSynonymsArray, synonymIds, words);
 
         return await Word.insertMany(wordsPayload);
     }
+};
+
+const createWordPayload = (wordWithSynonymsArray, synonymIds, wordsThatExistInDatabase) => {
+    return wordWithSynonymsArray.reduce((acc, word) => {
+        const found = wordsThatExistInDatabase.find(({ name }) => word === name);
+        if (!found) {
+            acc.push({ name: word, synonyms: synonymIds });
+        }
+        return acc;
+    }, []);
 };
 
 const findWordsFromArray = async (wordArray) => {
