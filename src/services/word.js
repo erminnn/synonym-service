@@ -34,7 +34,7 @@ const addWord = async (wordPayload) => {
          */
 
         const { _id: synonymsId } = await synonymService.addSynonyms({ synonyms: wordWithSynonyms });
-        await saveWords(wordWithSynonyms, [synonymsId], words);
+        await insertMultipleWords(wordWithSynonyms, [synonymsId], words);
     } else if (words.length === wordWithSynonyms.length) {
         return { msg: 'Words already exist' };
     } else {
@@ -44,7 +44,9 @@ const addWord = async (wordPayload) => {
             Filter wordWithSynonyms and retrieve words that are not present in words of grouped synonym.
             For every synonym in grouped synonyms, find it in database and add filtered words to his synonyms array.
             Map synonymsGroupedByWords to get only ids of synonyms.
-            Add words which are not in database with mapped synonym ids
+            Add words which are not in database with mapped synonym ids.
+
+            This logic solves synonym tranisitve rule requirement
         */
         const synonymsGroupedByWords = groupSynonymsByWords(words);
 
@@ -55,11 +57,11 @@ const addWord = async (wordPayload) => {
 
         const synonymIds = synonymsGroupedByWords.map((synonym) => synonym.synonymId);
 
-        await saveWords(wordWithSynonyms, synonymIds, words);
+        await insertMultipleWords(wordWithSynonyms, synonymIds, words);
     }
 };
 
-const saveWords = async (wordWithSynonyms, synonymIds, wordsThatExistInDatabase) => {
+const insertMultipleWords = async (wordWithSynonyms, synonymIds, wordsThatExistInDatabase) => {
     const words = createWordPayload(wordWithSynonyms, synonymIds, wordsThatExistInDatabase);
     return await Word.insertMany(words);
 };
