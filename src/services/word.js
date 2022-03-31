@@ -1,6 +1,6 @@
 import Word from '../models/word.js';
 import synonymService from './synonym';
-import { createWordPayload, groupSynonymsByWords } from '../utils/word';
+import { createWordPayload, groupSynonymsByWords, filterWordsWhichDoNotExistInDatabase } from '../utils/word';
 
 const getWords = async () => {
     return await Word.find({}).populate('synonyms');
@@ -23,6 +23,8 @@ const addWord = async (wordPayload) => {
     //Find if any of words in wordWithSynonyms exists in database.
     const words = await findWordsFromArray(wordWithSynonyms);
 
+    const wordsWhichDoNotExistsInDatabase = filterWordsWhichDoNotExistInDatabase(wordWithSynonyms, words);
+
     if (!words.length) {
         /*
         Case 1: If any of the words from wordWithSynonyms array do not exist in words collection
@@ -34,40 +36,64 @@ const addWord = async (wordPayload) => {
          */
 
         const { _id: synonymsId } = await synonymService.addSynonyms({ synonyms: wordWithSynonyms });
-        await insertMultipleWords(wordWithSynonyms, [synonymsId], words);
+        await insertMultipleWords(wordsWhichDoNotExistsInDatabase, synonymsId);
     } else if (words.length === wordWithSynonyms.length) {
         return { msg: 'Words already exist' };
     } else {
         /* 
         Case 2:
-            If there is some words that exist in word collection, group synonyms according to words that are found in word collection.
-            Filter wordWithSynonyms and retrieve words that are not present in words of grouped synonym.
-            For every synonym in grouped synonyms, find it in database and add filtered words to his synonyms array.
-            Map synonymsGroupedByWords to get only ids of synonyms.
-            Add words which are not in database with mapped synonym ids.
-
+            There is some words that exist in word collection.Group synonyms according to words that are found in word collection.
             This logic solves synonym tranisitve rule requirement
         */
         const synonymsGroupedByWords = groupSynonymsByWords(words);
 
-        for (const synonym of synonymsGroupedByWords) {
-            const synonyms = wordWithSynonyms.filter((word) => !synonym.words.includes(word));
-            await synonymService.addNewSynonymsToExistingSynonym(synonym.synonymId, synonyms);
+        if (synonymsGroupedByWords.length === 1) {
+            /*
+                Case 1:
+                    If array of grouped synonyms has length of 1.
+                    Use synonymId of that one item.
+                    Update synonym record in synonym collection, with adding new words which do not exist in database to his array.
+                    Also insert new words which do not exist in database in word collection with synonymId of that one item.
+            */
+            await synonymService.addNewWordsToExistingSynonym(wordsWhichDoNotExistsInDatabase, synonymsGroupedByWords[0]);
+            await insertMultipleWords(wordsWhichDoNotExistsInDatabase, synonymsGroupedByWords[0]);
+        } else {
+            /*
+                Case 2:
+                    Array of grouped synonyms has more than 1 item.
+                    It means that there is synonym records in synonym collection, which will be synonyms to each other after adding new words that have come from frontend.
+                    Query synonym collection and find synonyms from synonymsGroupedByWords sorted by synonyms size.The first item will have the largest number of synonyms.
+                    Merge all synonyms into array except the first one which is the largest.
+                    Add merged synonyms into the largest synonym.
+                    Add new words into word collection with the synonymId of the largest synonym.
+                    Update synonymId of words from merged synonyms with the id of the largest.
+                    After adding, and updating, we can safely remove all synonym records from grouped synonyms except largest.
+
+            */
+            const synonymsSortedBySize = await synonymService.findSynonymsFromArray(synonymsGroupedByWords);
+            const largestSynonym = synonymsSortedBySize[0];
+            const mergedSynonyms = [];
+            synonymsSortedBySize.slice(1, synonymsSortedBySize.length).forEach(({ synonyms }) => mergedSynonyms.push(...synonyms));
+
+            await synonymService.addNewWordsToExistingSynonym([...mergedSynonyms, ...wordsWhichDoNotExistsInDatabase], largestSynonym._id);
+            await updateSynonymOfWords(largestSynonym._id, mergedSynonyms);
+            await insertMultipleWords(wordsWhichDoNotExistsInDatabase, largestSynonym._id);
+            await synonymService.deleteSynonyms(synonymsGroupedByWords.slice(1, synonymsGroupedByWords.length));
         }
-
-        const synonymIds = synonymsGroupedByWords.map((synonym) => synonym.synonymId);
-
-        await insertMultipleWords(wordWithSynonyms, synonymIds, words);
     }
 };
 
-const insertMultipleWords = async (wordWithSynonyms, synonymIds, wordsThatExistInDatabase) => {
-    const words = createWordPayload(wordWithSynonyms, synonymIds, wordsThatExistInDatabase);
-    return await Word.insertMany(words);
+const insertMultipleWords = async (words, synonymId) => {
+    const wordsPayload = createWordPayload(words, synonymId);
+    return await Word.insertMany(wordsPayload);
 };
 
 const findWordsFromArray = async (wordArray) => {
     return await Word.find({ name: { $in: wordArray } }).populate('synonyms');
+};
+
+const updateSynonymOfWords = async (synonymId, words) => {
+    await Word.updateMany({ name: { $in: words } }, { $set: { synonyms: synonymId } });
 };
 
 export default {
