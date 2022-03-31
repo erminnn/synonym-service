@@ -74,11 +74,12 @@ const addWord = async (wordPayload) => {
             const largestSynonym = synonymsSortedBySize[0];
             const mergedSynonyms = [];
             synonymsSortedBySize.slice(1, synonymsSortedBySize.length).forEach(({ synonyms }) => mergedSynonyms.push(...synonyms));
+            const synonymsThatAreSafeToDelete = synonymsSortedBySize.slice(1, synonymsSortedBySize.length).map((synonym) => synonym._id);
 
             await synonymService.addNewWordsToExistingSynonym([...mergedSynonyms, ...wordsWhichDoNotExistsInDatabase], largestSynonym._id);
             await updateSynonymOfWords(largestSynonym._id, mergedSynonyms);
             await insertMultipleWords(wordsWhichDoNotExistsInDatabase, largestSynonym._id);
-            await synonymService.deleteSynonyms(synonymsGroupedByWords.slice(1, synonymsGroupedByWords.length));
+            await synonymService.deleteSynonyms(synonymsThatAreSafeToDelete);
         }
     }
 };
