@@ -1,25 +1,18 @@
 /* 
-    The first parameter of function represents array that is combined from word and synonyms.
-    The second parameter of function represents array of synonymIds from synonym collection.
-    The third parameter of function represents array of word records from word collection.
+    The first parameter of function represents array of words (Strings).
+    The second parameter of function represents synonymId.
 
     Description:
-        Filters words that don't exist in word collection and creates word model structure for every word.
+        Map words and creates word model structure for every word.
         Word model structure:
             {
                 name: String,
-                synonyms: [ObjectId]
+                synonyms: ObjectId
             }
         Function returns array of word objects, which will be saved in word collection.
 */
-const createWordPayload = (wordWithSynonyms, synonymIds, wordsThatExistInDatabase) => {
-    return wordWithSynonyms.reduce((acc, word) => {
-        const found = wordsThatExistInDatabase.find(({ name }) => word === name);
-        if (!found) {
-            acc.push({ name: word, synonyms: synonymIds });
-        }
-        return acc;
-    }, []);
+const createWordPayload = (words, synonymId) => {
+    return words.map((word) => ({ name: word, synonyms: synonymId }));
 };
 
 /* 
@@ -40,25 +33,33 @@ const createWordPayload = (wordWithSynonyms, synonymIds, wordsThatExistInDatabas
         }
     Description:
         With current logic, there can be multiple words with the same synonyms id.
-        This function groups all words into one array which have same synonyms id.
-        Function returns an array of objects with this structure:
-            {
-                synonymId: ObjectId
-                words: [String]
-            }
+        Function returns an array of synonyms id.
 */
 const groupSynonymsByWords = (words) => {
     return words.reduce((acc, word) => {
-        word.synonyms.forEach((synonym) => {
-            const index = acc.findIndex(({ synonymId }) => synonymId.toString() === synonym._id.toString());
-            if (index === -1) {
-                acc.push({ synonymId: synonym._id, words: [word.name] });
-            } else {
-                acc[index].words.push(word.name);
-            }
-        });
+        const found = acc.find((synonym) => synonym.toString() === word.synonyms._id.toString());
+        if (!found) {
+            acc.push(word.synonyms._id);
+        }
         return acc;
     }, []);
 };
+/*
+    This function filters words which do not exist in database.
+    
+    The first parameter of function represents array of words (Strings).
+    The second parameter of function represents array of word objects.
 
-export { createWordPayload, groupSynonymsByWords };
+    Strucutre of word object:
+    {
+        _id: ObjectId,
+        name: String,
+        synonyms: ObjectId
+    }
+
+*/
+const filterWordsWhichDoNotExistInDatabase = (words, wordsThatExistInDatabase) => {
+    return words.filter((word) => !wordsThatExistInDatabase.find(({ name }) => word === name));
+};
+
+export { createWordPayload, groupSynonymsByWords, filterWordsWhichDoNotExistInDatabase };
