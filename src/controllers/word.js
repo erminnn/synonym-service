@@ -2,7 +2,7 @@ import wordService from '../services/word.js';
 
 const getWords = async (req, res, next) => {
     try {
-        res.json(await wordService.getWords());
+        res.status(200).json({ success: true, data: await wordService.getWords() });
     } catch (err) {
         next(err);
     }
@@ -10,7 +10,7 @@ const getWords = async (req, res, next) => {
 
 const addWord = async (req, res, next) => {
     try {
-        res.json(await wordService.addWord(req.body));
+        res.status(200).json({ success: true, data: await wordService.addWord(req.body) });
     } catch (err) {
         next(err);
     }
