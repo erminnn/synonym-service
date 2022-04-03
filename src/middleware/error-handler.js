@@ -7,7 +7,8 @@ export default async (err, req, res, next) => {
             error: {
                 type: err.type || 'internal_server_error',
                 message: err.message || 'Unexpected internal server error.',
-                details: err.details
+                details: err.details,
+                success: false
             }
         });
 };
