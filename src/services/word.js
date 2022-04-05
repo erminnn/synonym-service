@@ -10,7 +10,7 @@ const searchWord = async (word) => {
     if (!word) {
         throw new Error('Word cannot be empty string');
     }
-    return await Word.find({ name: { $regex: '^' + word + '$', $options: 'i' } }).populate('synonyms');
+    return await Word.findOne({ name: { $regex: '^' + word + '$', $options: 'i' } }).populate('synonyms');
 };
 
 /*
