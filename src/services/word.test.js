@@ -306,7 +306,34 @@ describe('Testing word service functions', () => {
                 });
 
             const response = await request(app).get('/api/word');
+            const { success } = response.body;
+
+            expect(success).toBeTruthy();
             expect(response.statusCode).toBe(200);
+        });
+    });
+
+    describe('Test searchWord function', () => {
+        it('Validate that function will get status 200', async () => {
+            await request(app)
+                .post('/api/word')
+                .send({
+                    word: 'Wash',
+                    synonyms: ['Clean', 'Wipe']
+                });
+
+            const response = await request(app).get('/api/word/search?word=Wash');
+            const { success } = response.body;
+
+            expect(success).toBeTruthy();
+            expect(response.statusCode).toBe(200);
+        });
+
+        it('Validate that function will throw error if word is empty string', async () => {
+            await expect(wordService.searchWord('')).rejects.toThrow('Word cannot be empty string');
+        });
+        it('Validate that function will throw error if word null or undefined', async () => {
+            await expect(wordService.searchWord()).rejects.toThrow();
         });
     });
 });

@@ -6,6 +6,13 @@ const getWords = async () => {
     return await Word.find({}).populate('synonyms');
 };
 
+const searchWord = async (word) => {
+    if (!word) {
+        throw new Error('Word cannot be empty string');
+    }
+    return await Word.find({ name: { $regex: '^' + word + '$', $options: 'i' } }).populate('synonyms');
+};
+
 /*
     addWord function
     - Payload that comes from frontend has structure like this :
@@ -17,7 +24,7 @@ const getWords = async () => {
 const addWord = async (wordPayload) => {
     const { word, synonyms } = wordPayload;
 
-    if (word === '') {
+    if (!word) {
         throw new Error('Word cannot be empty string');
     }
 
@@ -127,5 +134,6 @@ export default {
     addWord,
     updateSynonymOfWords,
     findWordsFromArray,
-    insertMultipleWords
+    insertMultipleWords,
+    searchWord
 };
