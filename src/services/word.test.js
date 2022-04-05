@@ -149,6 +149,10 @@ describe('Testing word service functions', () => {
                     word: 'Ermin',
                     synonyms: ['Large', 'Wash']
                 });
+
+            const { success } = response.body;
+
+            expect(success).toBeTruthy();
             expect(response.statusCode).toBe(200);
         });
 
@@ -213,7 +217,7 @@ describe('Testing word service functions', () => {
                 }).toThrow('wordsThatExistInDatabase array is null');
             });
 
-            it('Validate that function will throw error if wordsThatExistInDatabase array is null', () => {
+            it('Validate that function will throw error if params are not passed', () => {
                 expect(() => {
                     wordUtil.filterWordsWhichDoNotExistInDatabase();
                 }).toThrow();
@@ -233,7 +237,7 @@ describe('Testing word service functions', () => {
                 }).toThrow('synonymId is null');
             });
 
-            it('Validate that function will throw error if words array is null', () => {
+            it('Validate that function will throw error if params are not passed', () => {
                 expect(() => {
                     wordUtil.createWordPayload();
                 }).toThrow();
@@ -246,10 +250,10 @@ describe('Testing word service functions', () => {
                     wordUtil.groupSynonymsByWords(null);
                 }).toThrow('words array is null');
             });
-            it('Validate that function will throw error if array is null', () => {
+            it('Validate that function will throw error if params are not passed', () => {
                 expect(() => {
                     wordUtil.groupSynonymsByWords();
-                }).toThrow('words array is null');
+                }).toThrow();
             });
         });
     });
@@ -259,8 +263,8 @@ describe('Testing word service functions', () => {
             it('Validate that function will throw error if array is null', async () => {
                 await expect(synonymService.addSynonyms(null)).rejects.toThrow(new Error('Synonym payload is null'));
             });
-            it('Validate that function will throw error if array is null', async () => {
-                await expect(synonymService.addSynonyms()).rejects.toThrow(new Error('Synonym payload is null'));
+            it('Validate that function will throw error if params are not passed', async () => {
+                await expect(synonymService.addSynonyms()).rejects.toThrow();
             });
         });
 
@@ -268,8 +272,8 @@ describe('Testing word service functions', () => {
             it('Validate that function will throw error if array is null', async () => {
                 await expect(synonymService.findSynonymsFromArray(null)).rejects.toThrow(new Error('Synonyms array is null'));
             });
-            it('Validate that function will throw error if array is null', async () => {
-                await expect(synonymService.findSynonymsFromArray()).rejects.toThrow(new Error('Synonyms array is null'));
+            it('Validate that function will throw error if params are not passed', async () => {
+                await expect(synonymService.findSynonymsFromArray()).rejects.toThrow();
             });
         });
 
@@ -277,8 +281,8 @@ describe('Testing word service functions', () => {
             it('Validate that function will throw error if array is null', async () => {
                 await expect(synonymService.deleteSynonyms(null)).rejects.toThrow(new Error('Synonyms array is null'));
             });
-            it('Validate that function will throw error if array is null', async () => {
-                await expect(synonymService.deleteSynonyms()).rejects.toThrow(new Error('Synonyms array is null'));
+            it('Validate that function will throw error if params are not passed', async () => {
+                await expect(synonymService.deleteSynonyms()).rejects.toThrow();
             });
         });
 
@@ -286,7 +290,7 @@ describe('Testing word service functions', () => {
             it('Validate that function will throw error if array is null', async () => {
                 await expect(synonymService.addNewWordsToExistingSynonym(null, 1)).rejects.toThrow(new Error('Synonyms array is null'));
             });
-            it('Validate that function will throw error if array is null', async () => {
+            it('Validate that function will throw error if synonym id is null', async () => {
                 await expect(synonymService.addNewWordsToExistingSynonym([], null)).rejects.toThrow(new Error('Synonym id is null'));
             });
         });
