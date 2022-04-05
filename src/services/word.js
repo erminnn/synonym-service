@@ -17,6 +17,14 @@ const getWords = async () => {
 const addWord = async (wordPayload) => {
     const { word, synonyms } = wordPayload;
 
+    if (word === '') {
+        throw new Error('Word cannot be empty string');
+    }
+
+    if (synonyms.length === 0) {
+        throw new Error('Synonyms cannot be empty array');
+    }
+
     // - Merge word with synonyms into one array.Let's call that array wordWithSynonyms.
     const wordWithSynonyms = [...synonyms, word];
 
@@ -36,7 +44,7 @@ const addWord = async (wordPayload) => {
          */
 
         const { _id: synonymsId } = await synonymService.addSynonyms({ synonyms: wordWithSynonyms });
-        await insertMultipleWords(wordsWhichDoNotExistsInDatabase, synonymsId);
+        return await insertMultipleWords(wordsWhichDoNotExistsInDatabase, synonymsId);
     } else if (words.length === wordWithSynonyms.length) {
         return { msg: 'Words already exist' };
     } else {
@@ -56,7 +64,7 @@ const addWord = async (wordPayload) => {
                     Also insert new words which do not exist in database in word collection with synonymId of that one item.
             */
             await synonymService.addNewWordsToExistingSynonym(wordsWhichDoNotExistsInDatabase, synonymsGroupedByWords[0]);
-            await insertMultipleWords(wordsWhichDoNotExistsInDatabase, synonymsGroupedByWords[0]);
+            return await insertMultipleWords(wordsWhichDoNotExistsInDatabase, synonymsGroupedByWords[0]);
         } else {
             /*
                 Case 2:
@@ -74,30 +82,50 @@ const addWord = async (wordPayload) => {
             const largestSynonym = synonymsSortedBySize[0];
             const mergedSynonyms = [];
             synonymsSortedBySize.slice(1, synonymsSortedBySize.length).forEach(({ synonyms }) => mergedSynonyms.push(...synonyms));
-            const synonymsThatAreSafeToDelete = synonymsSortedBySize.slice(1, synonymsSortedBySize.length).map((synonym) => synonym._id);
 
             await synonymService.addNewWordsToExistingSynonym([...mergedSynonyms, ...wordsWhichDoNotExistsInDatabase], largestSynonym._id);
             await updateSynonymOfWords(largestSynonym._id, mergedSynonyms);
-            await insertMultipleWords(wordsWhichDoNotExistsInDatabase, largestSynonym._id);
+            const result = await insertMultipleWords(wordsWhichDoNotExistsInDatabase, largestSynonym._id);
+
+            const synonymsThatAreSafeToDelete = synonymsSortedBySize.slice(1, synonymsSortedBySize.length).map((synonym) => synonym._id);
             await synonymService.deleteSynonyms(synonymsThatAreSafeToDelete);
+            return result;
         }
     }
 };
 
 const insertMultipleWords = async (words, synonymId) => {
+    if (!words) {
+        throw new Error('words array is null');
+    }
+    if (!synonymId) {
+        throw new Error('synonymId is null');
+    }
     const wordsPayload = createWordPayload(words, synonymId);
     return await Word.insertMany(wordsPayload);
 };
 
-const findWordsFromArray = async (wordArray) => {
-    return await Word.find({ name: { $in: wordArray } }).populate('synonyms');
+const findWordsFromArray = async (words) => {
+    if (!words) {
+        throw new Error('words array is null');
+    }
+    return await Word.find({ name: { $in: words } }).populate('synonyms');
 };
 
 const updateSynonymOfWords = async (synonymId, words) => {
+    if (!words) {
+        throw new Error('words array is null');
+    }
+    if (!synonymId) {
+        throw new Error('synonymId is null');
+    }
     await Word.updateMany({ name: { $in: words } }, { $set: { synonyms: synonymId } });
 };
 
 export default {
     getWords,
-    addWord
+    addWord,
+    updateSynonymOfWords,
+    findWordsFromArray,
+    insertMultipleWords
 };
