@@ -39,7 +39,6 @@ const addWord = async (wordPayload) => {
     const words = await findWordsFromArray(wordWithSynonyms);
 
     const wordsWhichDoNotExistsInDatabase = filterWordsWhichDoNotExistInDatabase(wordWithSynonyms, words);
-
     if (!words.length) {
         /*
         Case 1: If any of the words from wordWithSynonyms array do not exist in words collection
@@ -116,7 +115,8 @@ const findWordsFromArray = async (words) => {
     if (!words) {
         throw new Error('words array is null');
     }
-    return await Word.find({ name: { $in: words } }).populate('synonyms');
+    const regexWords = words.map((word) => new RegExp(word, 'i'));
+    return await Word.find({ name: { $in: regexWords } }).populate('synonyms');
 };
 
 const updateSynonymOfWords = async (synonymId, words) => {

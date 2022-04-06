@@ -74,7 +74,7 @@ const filterWordsWhichDoNotExistInDatabase = (words, wordsThatExistInDatabase) =
     if (!wordsThatExistInDatabase) {
         throw new Error('wordsThatExistInDatabase array is null');
     }
-    return words.filter((word) => !wordsThatExistInDatabase.find(({ name }) => word === name));
+    return words.filter((word) => !wordsThatExistInDatabase.find(({ name }) => word.toLowerCase() === name.toLowerCase()));
 };
 
 export { createWordPayload, groupSynonymsByWords, filterWordsWhichDoNotExistInDatabase };
